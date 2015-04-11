@@ -9,6 +9,8 @@ rotors = []
 reversed_rotors = []
 
 rotor_counts = [0, 0, 0]
+
+# Handles cases when disks make a full turn
 def map_number(num):
     if(num <= 0):
         num += 26
@@ -16,6 +18,7 @@ def map_number(num):
         num -= 26
     return num
 
+# "Turns" the disks in odometer style
 def increase_counters(counters, idx = 0):
     counters[idx] += 1
     if(counters[idx] == 26):
@@ -23,6 +26,7 @@ def increase_counters(counters, idx = 0):
         if(idx < 2):
             increase_counters(counters, idx + 1)
 
+# Read disk files
 for path in disk_files:
     rotor = {}
     reversed_rotor = {}
@@ -37,6 +41,7 @@ for path in disk_files:
     reversed_rotors.append(reversed_rotor)
     f.close()
 
+# Read patch panel
 patch_panel = {}
 f = open(patch_file, 'r')
 lines = f.read().splitlines()
@@ -48,62 +53,93 @@ for line in lines:
     patch_panel[patch_output] = patch_input
 f.close()
 
-f = open('../data/reflector2.txt')
+# Read reflector file
+reflector_array = [
+    15,
+    18,
+    14,
+    26,
+    24,
+    16,
+    25,
+    21,
+    17,
+    23,
+    20,
+    22,
+    19
+]
+
+# reflector_array = [
+#     25,
+#     18,
+#     21,
+#     8,
+#     17,
+#     19,
+#     12,
+#     4,
+#     16,
+#     24,
+#     14,
+#     7,
+#     15,
+#     11,
+#     13,
+#     9,
+#     5,
+#     2,
+#     6,
+#     26,
+#     3,
+#     23,
+#     22,
+#     10,
+#     1,
+#     20
+# ]
+
+# Make hash with reflector for ease of use
 reflector = {}
-lines = f.read().splitlines()
-for i, line in enumerate(lines, start = 1):
-    num = int(line)
-    reflector[i] = num
-    reflector[num] = i
+for i, reflection in enumerate(reflector_array, start = 1):
+    reflector[i] = reflection
+    reflector[reflection] = i
 
-f.close()
-
-
+# Get user input, remove spaces and transform to lower case
 plain_text = input("plaintext> ").replace(" ", "").lower()
-
+used_input = ""
 
 encrypted_text = ""
 for char in plain_text:
     increase_counters(rotor_counts)
 
     num = ord(char) - 96
+    # Ignore invalid characters
+    if(num < 1 or num > 26):
+        continue
+
+    used_input += char
+
+    # Apply patch panel
     if num in patch_panel:
         num = patch_panel[num]
 
-
-    # print('Number is', num)
     first_transform = rotors[0][map_number(num + rotor_counts[0])]
-    # print('After first rotor:', first_transform, chr(first_transform + 96))
-
     second_transform = rotors[1][map_number(first_transform + rotor_counts[1] - rotor_counts[0])]
-    # print('After second rotor: ', second_transform, chr(second_transform + 96))
-
     third_transform = rotors[2][map_number(second_transform + rotor_counts[2] - rotor_counts[1])]
-    # print('After third rotor: ', third_transform, chr(third_transform + 96))
 
     mirrored = reflector[third_transform - rotor_counts[2]]
-    # print('After reflector: ', mirrored, chr(mirrored + 96))
 
     fourth_transform = reversed_rotors[2][map_number(mirrored + rotor_counts[2])]
-    # print('After third rotor: ', fourth_transform, chr(fourth_transform + 96))
-
     fifth_transform = reversed_rotors[1][map_number(fourth_transform + rotor_counts[1] - rotor_counts[2])]
-    # print('After middle rotor: ', fifth_transform, chr(fifth_transform + 96))
-
     encrypted = reversed_rotors[0][map_number(fifth_transform + rotor_counts[0] - rotor_counts[1])]
-    # print('Reversed final letter: ', encrypted)
 
-    # print(fifth_transform + rotor_counts[0] - rotor_counts[1])
+    # Align with panel
     final_number = map_number(encrypted - rotor_counts[0])
     if final_number in patch_panel:
         final_number = patch_panel[final_number]
 
-    # print('Encrypted char: ', final_number, chr(final_number + 96))
     encrypted_text += chr(final_number + 96)
-    # print(third_transform)
-    # print(mirrored)
-    # print(fourth_transform)
-    # print(fifth_transform)
     # print(encrypted)
 
 
